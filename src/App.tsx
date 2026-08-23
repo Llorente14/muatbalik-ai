@@ -4,23 +4,9 @@ export default function App() {
 
       {/* ── Top Navigation ── */}
       <nav className="bg-surface text-primary top-0 w-full border-b border-outline-variant">
-        <div className="flex justify-between items-center w-full px-6 py-4 max-w-7xl mx-auto">
+        <div className="flex items-center w-full px-6 py-4 max-w-7xl mx-auto">
           <div className="text-xl font-bold text-primary tracking-tight">
             MuatBalik AI
-          </div>
-          <div className="flex gap-4">
-            <button
-              className="hover:opacity-80 transition-opacity text-on-surface-variant"
-              aria-label="Account"
-            >
-              <span className="material-symbols-outlined">account_circle</span>
-            </button>
-            <button
-              className="hover:opacity-80 transition-opacity text-on-surface-variant"
-              aria-label="Settings"
-            >
-              <span className="material-symbols-outlined">settings</span>
-            </button>
           </div>
         </div>
       </nav>
