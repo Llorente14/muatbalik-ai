@@ -1,0 +1,17 @@
+[
+  {
+    "name": "Ambon",
+    "type": "origin_port",
+    "cold_storage": true
+  },
+  {
+    "name": "Makassar",
+    "type": "transit_hub",
+    "cold_storage": true
+  },
+  {
+    "name": "Surabaya",
+    "type": "destination_port",
+    "cold_storage": true
+  }
+]

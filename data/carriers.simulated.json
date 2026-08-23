@@ -1,0 +1,34 @@
+[
+  {
+    "id": "CAR-001",
+    "name": "Nusantara Coldline 07",
+    "origin": "Ambon",
+    "destination": "Surabaya",
+    "route": ["Ambon", "Makassar", "Surabaya"],
+    "capacity_kg": 1200,
+    "temperature_min_c": -2,
+    "temperature_max_c": 6,
+    "price_idr": 4800000,
+    "rating": 4.8,
+    "return_origin": "Surabaya",
+    "return_destination": "Ambon",
+    "return_capacity_kg": 1000,
+    "status": "available"
+  },
+  {
+    "id": "CAR-002",
+    "name": "Samudra Reefer Express",
+    "origin": "Ambon",
+    "destination": "Surabaya",
+    "route": ["Ambon", "Surabaya"],
+    "capacity_kg": 500,
+    "temperature_min_c": 0,
+    "temperature_max_c": 5,
+    "price_idr": 5600000,
+    "rating": 4.6,
+    "return_origin": "Surabaya",
+    "return_destination": "Ambon",
+    "return_capacity_kg": 500,
+    "status": "available"
+  }
+]

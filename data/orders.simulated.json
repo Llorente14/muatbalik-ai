@@ -1,0 +1,34 @@
+[
+  {
+    "id": "ORD-1001",
+    "raw_text": "Cari kapal 300 kg tuna dari Ambon ke Surabaya, suhu 0-4 C, pickup besok pagi.",
+    "origin": "Ambon",
+    "destination": "Surabaya",
+    "commodity": "tuna chilled",
+    "weight_kg": 300,
+    "temperature_min_c": 0,
+    "temperature_max_c": 4,
+    "pickup_deadline": "besok pagi",
+    "status": "confirmed"
+  },
+  {
+    "id": "BHO-201",
+    "origin": "Surabaya",
+    "destination": "Ambon",
+    "commodity": "kopi roasted",
+    "weight_kg": 180,
+    "temperature_min_c": 15,
+    "temperature_max_c": 25,
+    "status": "backhaul_candidate"
+  },
+  {
+    "id": "BHO-218",
+    "origin": "Surabaya",
+    "destination": "Ambon",
+    "commodity": "alat packing UMKM",
+    "weight_kg": 220,
+    "temperature_min_c": 15,
+    "temperature_max_c": 25,
+    "status": "backhaul_candidate"
+  }
+]
