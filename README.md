@@ -56,15 +56,13 @@ Dokumentasi interaktif tersedia di `http://localhost:8000/docs`. Endpoint inti:
 
 ## Integrasi Model AI Asli
 
-Logika ekstraksi saat ini berada di `backend/services/extractor.py` menggunakan mock inference. Setelah model dilatih (misalnya via Unsloth/LoRA) dan di-hosting (misalnya via Ollama atau vLLM), perbarui file tersebut:
+Backend mendukung model `.gguf` yang dijalankan melalui llama.cpp server. Simpan model di luar Git repository, jalankan server pada port `8080`, lalu salin `.env.example` menjadi `.env` dan isi:
 
-```python
-# backend/services/extractor.py
-import requests
-
-def extract_order(raw_text: str) -> dict:
-    response = requests.post("URL_MODEL_ANDA", json={"prompt": raw_text})
-    return response.json()
+```text
+MODEL_BASE_URL=http://localhost:8080/v1
+MODEL_NAME=order-extractor
 ```
 
-UI dan arsitektur database tidak perlu diubah — sistem akan otomatis merender hasil dari model AI asli.
+Saat `MODEL_BASE_URL` diisi, `backend/services/extractor.py` memanggil endpoint OpenAI-compatible `/chat/completions`, memvalidasi JSON hasil model, dan menormalkannya ke schema order. Jika kosong, backend tetap memakai extractor mock.
+
+Detail setup model ada di `models/readme.md`. UI dan endpoint order tidak perlu diubah.

@@ -23,8 +23,12 @@
 
 from __future__ import annotations
 
+import json
+import os
 import re
 from typing import Optional
+import urllib.error
+import urllib.request
 
 # ── City alias map ──
 CITY_ALIASES: dict[str, str] = {
@@ -172,7 +176,7 @@ def _extract_commodity(text: str) -> Optional[str]:
     return None
 
 
-def extract_order(raw_text: str) -> dict:
+def _extract_order_mock(raw_text: str) -> dict:
     """
     Mock extractor — parse Indonesian logistics chat into structured JSON.
 
@@ -230,6 +234,184 @@ def extract_order(raw_text: str) -> dict:
     }
 
 
+class ModelInferenceError(RuntimeError):
+    """Raised when the configured model server cannot return valid JSON."""
+
+
+MODEL_SYSTEM_PROMPT = """You extract Indonesian logistics orders.
+Return ONLY one valid JSON object with these optional fields:
+origin, destination, commodity, weight_kg, temperature_min_c,
+temperature_max_c, pickup_deadline.
+Use null when a field is not present. Do not add markdown or explanations.
+"""
+
+
+def extract_order(raw_text: str) -> dict:
+    """Extract an order using the configured model server or the mock parser.
+
+    Set MODEL_BASE_URL to a llama.cpp-compatible OpenAI API base URL such as
+    ``http://localhost:8080/v1`` to enable real model inference. With no URL,
+    the deterministic mock parser remains available for local development.
+    """
+    if os.getenv("MODEL_BASE_URL", "").strip():
+        return _extract_order_from_model(raw_text)
+    return _extract_order_mock(raw_text)
+
+
+def _extract_order_from_model(raw_text: str) -> dict:
+    base_url = os.getenv("MODEL_BASE_URL", "").strip().rstrip("/")
+    model_name = os.getenv("MODEL_NAME", "order-extractor")
+    timeout_seconds = float(os.getenv("MODEL_TIMEOUT_SECONDS", "60"))
+
+    request_body = {
+        "model": model_name,
+        "messages": [
+            {"role": "system", "content": MODEL_SYSTEM_PROMPT},
+            {"role": "user", "content": raw_text},
+        ],
+        "temperature": 0,
+        "max_tokens": 256,
+        "response_format": {"type": "json_object"},
+    }
+    headers = {"Content-Type": "application/json"}
+    api_key = os.getenv("MODEL_API_KEY", "").strip()
+    if api_key:
+        headers["Authorization"] = f"Bearer {api_key}"
+
+    request = urllib.request.Request(
+        f"{base_url}/chat/completions",
+        data=json.dumps(request_body).encode("utf-8"),
+        headers=headers,
+        method="POST",
+    )
+
+    try:
+        with urllib.request.urlopen(request, timeout=timeout_seconds) as response:
+            response_data = json.loads(response.read().decode("utf-8"))
+    except (urllib.error.URLError, TimeoutError, ValueError, OSError) as exc:
+        raise ModelInferenceError(f"Model server request failed: {exc}") from exc
+
+    try:
+        content = response_data["choices"][0]["message"]["content"]
+    except (KeyError, IndexError, TypeError) as exc:
+        raise ModelInferenceError("Model response has no chat completion content") from exc
+
+    parsed = _parse_model_json(content)
+    normalized = _normalize_model_payload(parsed)
+    temp_min = normalized["temperature_min_c"]
+    temp_max = normalized["temperature_max_c"]
+    temp_requirement = None
+    if temp_min is not None and temp_max is not None:
+        temp_requirement = f"{_format_number(temp_min)}_{_format_number(temp_max)}"
+
+    origin = normalized["origin"] or "Unknown"
+    return {
+        "status": "success",
+        "message": f"{origin} siap memuat!",
+        "details": {
+            "origin": normalized["origin"],
+            "destination": normalized["destination"],
+            "cargo_type": normalized["commodity"],
+            "weight": normalized["weight_kg"],
+            "unit": "kg",
+            "temp_requirement": temp_requirement,
+            "delivery_time": normalized["pickup_deadline"],
+        },
+    }
+
+
+def _parse_model_json(content: object) -> dict:
+    if not isinstance(content, str):
+        raise ModelInferenceError("Model content must be a JSON string")
+
+    text = content.strip()
+    if text.startswith("```"):
+        text = re.sub(r"^```(?:json)?\s*|\s*```$", "", text, flags=re.IGNORECASE)
+
+    try:
+        parsed = json.loads(text)
+    except json.JSONDecodeError:
+        # Some local runtimes ignore response_format and add a short prefix.
+        start, end = text.find("{"), text.rfind("}")
+        if start < 0 or end <= start:
+            raise ModelInferenceError("Model did not return valid JSON")
+        try:
+            parsed = json.loads(text[start : end + 1])
+        except json.JSONDecodeError as exc:
+            raise ModelInferenceError("Model did not return valid JSON") from exc
+
+    if not isinstance(parsed, dict):
+        raise ModelInferenceError("Model JSON must be an object")
+    return parsed
+
+
+def _normalize_model_payload(payload: dict) -> dict:
+    """Accept the spec's flat JSON and the legacy nested details shape."""
+    details = payload.get("details")
+    if isinstance(details, dict):
+        payload = details
+
+    weight_kg = _as_float(payload.get("weight_kg"))
+    if weight_kg is None and payload.get("weight") is not None:
+        weight = _as_float(payload.get("weight"))
+        unit = str(payload.get("unit") or "kg").lower()
+        weight_kg = weight * 1000 if unit in {"ton", "tons", "t"} else weight
+
+    temp_min = _as_float(payload.get("temperature_min_c"))
+    temp_max = _as_float(payload.get("temperature_max_c"))
+    if temp_min is None or temp_max is None:
+        parsed_min, parsed_max = _parse_temperature_range(payload.get("temp_requirement"))
+        temp_min = temp_min if temp_min is not None else parsed_min
+        temp_max = temp_max if temp_max is not None else parsed_max
+
+    return {
+        "origin": _as_optional_text(payload.get("origin")),
+        "destination": _as_optional_text(payload.get("destination")),
+        "commodity": _as_optional_text(payload.get("commodity") or payload.get("cargo_type")),
+        "weight_kg": weight_kg,
+        "temperature_min_c": temp_min,
+        "temperature_max_c": temp_max,
+        "pickup_deadline": _as_optional_text(
+            payload.get("pickup_deadline") or payload.get("delivery_time")
+        ),
+    }
+
+
+def _as_optional_text(value: object) -> Optional[str]:
+    if value is None or value == "":
+        return None
+    if not isinstance(value, str):
+        raise ModelInferenceError("Text fields in model JSON must be strings or null")
+    return value.strip() or None
+
+
+def _as_float(value: object) -> Optional[float]:
+    if value is None or value == "":
+        return None
+    try:
+        return float(value)
+    except (TypeError, ValueError) as exc:
+        raise ModelInferenceError("Numeric fields in model JSON must be numbers or null") from exc
+
+
+def _format_number(value: float) -> str:
+    return str(int(value)) if value.is_integer() else str(value)
+
+
+def _parse_temperature_range(value: object) -> tuple[Optional[float], Optional[float]]:
+    if value is None:
+        return None, None
+    match = re.search(
+        r"(-?\d+(?:\.\d+)?)\s*(?:_|-|–|sampai|hingga|s/d)\s*(-?\d+(?:\.\d+)?)",
+        str(value),
+        flags=re.IGNORECASE,
+    )
+    if not match:
+        return None, None
+    first, second = float(match.group(1)), float(match.group(2))
+    return min(first, second), max(first, second)
+
+
 def inference_to_order_fields(inference: dict) -> dict:
     """
     Convert inference output to PRD-compatible order fields.
@@ -253,13 +435,7 @@ def inference_to_order_fields(inference: dict) -> dict:
     temp_max = None
     temp_req = details.get("temp_requirement")
     if temp_req:
-        parts = re.split(r"[_\-]", str(temp_req))
-        if len(parts) == 2:
-            try:
-                temp_min = float(parts[0])
-                temp_max = float(parts[1])
-            except ValueError:
-                pass
+        temp_min, temp_max = _parse_temperature_range(temp_req)
 
     return {
         "origin": details.get("origin"),
