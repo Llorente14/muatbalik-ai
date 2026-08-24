@@ -254,7 +254,11 @@ def extract_order(raw_text: str) -> dict:
     the deterministic mock parser remains available for local development.
     """
     if os.getenv("MODEL_BASE_URL", "").strip():
-        return _extract_order_from_model(raw_text)
+        try:
+            return _extract_order_from_model(raw_text)
+        except Exception as exc:
+            print(f"[WARN] Model inference failed: {exc}. Falling back to mock extractor.")
+            return _extract_order_mock(raw_text)
     return _extract_order_mock(raw_text)
 
 
@@ -271,7 +275,6 @@ def _extract_order_from_model(raw_text: str) -> dict:
         ],
         "temperature": 0,
         "max_tokens": 256,
-        "response_format": {"type": "json_object"},
     }
     headers = {"Content-Type": "application/json"}
     api_key = os.getenv("MODEL_API_KEY", "").strip()
