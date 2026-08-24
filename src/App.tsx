@@ -56,13 +56,16 @@ export default function App() {
         <div className="w-full max-w-3xl flex flex-col items-center space-y-8 mb-12">
           {/* Hero heading */}
           <div className="text-center space-y-4">
-            {/* AI icon */}
-            <div className="flex justify-center mb-4">
-              <img 
-                src="/hero-icon.png" 
-                alt="AI Icon" 
-                className={`w-28 h-28 object-contain ${loading ? 'animate-pulse' : ''}`} 
-              />
+            {/* Clean Sparkle Icon */}
+            <div className="flex justify-center mb-2">
+              <div className="flex items-center justify-center w-16 h-16 text-[#6366F1]">
+                <span
+                  className={`material-symbols-outlined text-5xl ${loading ? 'animate-pulse' : ''}`}
+                  style={{ fontVariationSettings: "'FILL' 1" }}
+                >
+                  auto_awesome
+                </span>
+              </div>
             </div>
             <h1 className="text-5xl md:text-6xl font-bold text-primary tracking-tight">
               Hello, Captain.
@@ -72,21 +75,11 @@ export default function App() {
             </p>
           </div>
 
-          {/* Input box with gradient border */}
+          {/* Input box without gradient border */}
           <div className="w-full relative group">
-            <div className="absolute inset-0 bg-secondary rounded-xl opacity-0 group-focus-within:opacity-20 blur-xl transition-opacity duration-300 pointer-events-none" />
-            <div
-              className="rounded-xl shadow-[0_10px_15px_-3px_rgba(99,102,241,0.08)] focus-within:shadow-[0_0_12px_rgba(139,92,246,0.5)] transition-shadow duration-300 relative z-10"
-              style={{
-                background: 'linear-gradient(to right, #6366F1, #06B6D4)',
-                padding: '1px',
-                borderRadius: '0.75rem',
-              }}
-            >
-              <div
-                className="flex items-center bg-surface"
-                style={{ borderRadius: 'calc(0.75rem - 1px)', padding: '0.5rem' }}
-              >
+            <div className="absolute inset-0 bg-secondary rounded-xl opacity-0 group-focus-within:opacity-10 blur-xl transition-opacity duration-300 pointer-events-none" />
+            <div className="rounded-xl border border-outline-variant bg-surface focus-within:border-primary focus-within:shadow-[0_0_12px_rgba(99,102,241,0.2)] transition-all duration-300 relative z-10">
+              <div className="flex items-center p-2">
                 <textarea
                   ref={textAreaRef}
                   value={inputText}
@@ -97,7 +90,7 @@ export default function App() {
                       handleSend();
                     }
                   }}
-                  className="w-full bg-transparent border-none focus:ring-0 resize-none py-4 px-4 text-base text-on-surface placeholder-on-surface-variant h-24 outline-none"
+                  className="w-full bg-transparent border-none focus:ring-0 resize-none py-3 px-3 text-base text-on-surface placeholder-on-surface-variant h-24 outline-none"
                   placeholder='e.g., "bos tlg cariin kapal rute bitung k mks buat angkut 1.5 ton cakalang fresh, butuh chiller 2-4 C, tlg muat lusa sore ya."'
                   disabled={loading}
                 />
