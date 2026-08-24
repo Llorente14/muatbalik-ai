@@ -57,13 +57,12 @@ export default function App() {
           {/* Hero heading */}
           <div className="text-center space-y-4">
             {/* AI icon */}
-            <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-indigo-100 text-indigo-600 mb-4 shadow-[0_0_12px_rgba(139,92,246,0.5)]">
-              <span
-                className={`material-symbols-outlined text-3xl ${loading ? 'animate-spin' : ''}`}
-                style={{ fontVariationSettings: "'FILL' 1" }}
-              >
-                auto_awesome
-              </span>
+            <div className="flex justify-center mb-4">
+              <img 
+                src="/hero-icon.png" 
+                alt="AI Icon" 
+                className={`w-28 h-28 object-contain ${loading ? 'animate-pulse' : ''}`} 
+              />
             </div>
             <h1 className="text-5xl md:text-6xl font-bold text-primary tracking-tight">
               Hello, Captain.
@@ -106,8 +105,7 @@ export default function App() {
                   <button
                     onClick={handleSend}
                     disabled={loading || !inputText.trim()}
-                    className="text-white rounded-full w-12 h-12 flex items-center justify-center hover:opacity-90 transition-opacity shadow-md disabled:opacity-50"
-                    style={{ background: 'linear-gradient(to right, #6366F1, #06B6D4)' }}
+                    className="bg-primary text-white rounded-full w-12 h-12 flex items-center justify-center hover:bg-primary/90 transition-colors shadow-sm disabled:opacity-50"
                     aria-label="Send"
                   >
                     <span className="material-symbols-outlined">
@@ -139,53 +137,133 @@ export default function App() {
           </div>
 
           {/* Results Output */}
-          {result && (
+          {result && !result.error && result.order && (
             <div className="w-full mt-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-              <div className="bg-surface-container rounded-xl p-6 border border-outline-variant shadow-sm space-y-6">
+              <div className="bg-surface-container rounded-xl p-6 border border-outline-variant shadow-sm space-y-8">
                 
-                {/* Extraction Result */}
+                {/* Extraction Result - Human Readable */}
                 <div>
-                  <h3 className="text-lg font-bold text-primary mb-3 flex items-center gap-2">
-                    <span className="material-symbols-outlined">data_object</span>
-                    AI Extraction
+                  <h3 className="text-lg font-bold text-primary mb-4 flex items-center gap-2">
+                    <span className="material-symbols-outlined">check_circle</span>
+                    Order Berhasil Diekstrak
                   </h3>
-                  <div className="bg-black/5 rounded-lg p-4 font-mono text-sm overflow-x-auto text-on-surface">
-                    <pre>{JSON.stringify(result, null, 2)}</pre>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <div className="bg-surface p-4 rounded-xl border border-outline-variant shadow-sm">
+                      <div className="text-xs font-semibold text-on-surface-variant flex items-center gap-1.5 mb-2 uppercase tracking-wider">
+                        <span className="material-symbols-outlined text-[18px]">route</span> Rute
+                      </div>
+                      <div className="font-bold text-on-surface text-lg leading-tight">
+                        {result.order.origin || '?'} <br/>
+                        <span className="text-sm text-on-surface-variant font-normal">ke</span> {result.order.destination || '?'}
+                      </div>
+                    </div>
+                    <div className="bg-surface p-4 rounded-xl border border-outline-variant shadow-sm">
+                      <div className="text-xs font-semibold text-on-surface-variant flex items-center gap-1.5 mb-2 uppercase tracking-wider">
+                        <span className="material-symbols-outlined text-[18px]">inventory_2</span> Muatan
+                      </div>
+                      <div className="font-bold text-on-surface text-lg leading-tight">
+                        {result.order.weight_kg ? `${result.order.weight_kg} kg` : '?'} <br/>
+                        <span className="text-sm text-on-surface-variant font-normal capitalize">{result.order.commodity}</span>
+                      </div>
+                    </div>
+                    <div className="bg-surface p-4 rounded-xl border border-outline-variant shadow-sm">
+                      <div className="text-xs font-semibold text-on-surface-variant flex items-center gap-1.5 mb-2 uppercase tracking-wider">
+                        <span className="material-symbols-outlined text-[18px]">ac_unit</span> Suhu (Cold-Chain)
+                      </div>
+                      <div className="font-bold text-on-surface text-lg leading-tight">
+                        {result.order.temperature_min_c !== null ? `${result.order.temperature_min_c}°C` : 'Ambient'} <br/>
+                        <span className="text-sm text-on-surface-variant font-normal">
+                          {result.order.temperature_max_c !== null ? `sampai ${result.order.temperature_max_c}°C` : 'Suhu Ruang'}
+                        </span>
+                      </div>
+                    </div>
+                    <div className="bg-surface p-4 rounded-xl border border-outline-variant shadow-sm">
+                      <div className="text-xs font-semibold text-on-surface-variant flex items-center gap-1.5 mb-2 uppercase tracking-wider">
+                        <span className="material-symbols-outlined text-[18px]">schedule</span> Waktu Pickup
+                      </div>
+                      <div className="font-bold text-on-surface text-lg leading-tight capitalize">
+                        {result.order.pickup_deadline || 'Segera'} <br/>
+                        <span className="text-sm text-on-surface-variant font-normal">Status: Pending</span>
+                      </div>
+                    </div>
                   </div>
                 </div>
+
+                <hr className="border-outline-variant" />
 
                 {/* Match Candidates Result */}
                 {matchCandidates.length > 0 && (
                   <div>
-                    <h3 className="text-lg font-bold text-primary mb-3 flex items-center gap-2">
-                      <span className="material-symbols-outlined">route</span>
-                      Carrier Matches
+                    <h3 className="text-lg font-bold text-primary mb-4 flex items-center gap-2">
+                      <span className="material-symbols-outlined">directions_boat</span>
+                      Rekomendasi Kapal Tersedia
                     </h3>
-                    <div className="flex flex-col gap-3">
+                    
+                    {/* INFO BAR FOR SCORE RANGE */}
+                    <div className="flex items-start gap-3 bg-secondary/10 border border-secondary/20 p-4 rounded-xl text-sm mb-6 shadow-sm">
+                      <span className="material-symbols-outlined text-secondary text-2xl mt-0.5">info</span>
+                      <div className="text-on-surface w-full">
+                        <strong className="text-base block mb-2">Panduan Skor Kecocokan (AI Scoring):</strong>
+                        <ul className="flex flex-col md:flex-row gap-3 md:gap-6 w-full">
+                          <li className="flex items-center gap-2 bg-surface px-3 py-1.5 rounded-lg border border-outline-variant flex-1">
+                            <span className="w-3 h-3 rounded-full bg-primary flex-shrink-0 shadow-[0_0_8px_rgba(99,102,241,0.6)]"></span> 
+                            <span><b>≥ 90</b>: Direkomendasikan (Suhu & Rute pas)</span>
+                          </li>
+                          <li className="flex items-center gap-2 bg-surface px-3 py-1.5 rounded-lg border border-outline-variant flex-1">
+                            <span className="w-3 h-3 rounded-full bg-yellow-500 flex-shrink-0 shadow-[0_0_8px_rgba(234,179,8,0.6)]"></span> 
+                            <span><b>60-89</b>: Alternatif (Bisa masuk / Transit)</span>
+                          </li>
+                          <li className="flex items-center gap-2 bg-surface px-3 py-1.5 rounded-lg border border-outline-variant flex-1">
+                            <span className="w-3 h-3 rounded-full bg-error flex-shrink-0 shadow-[0_0_8px_rgba(239,68,68,0.6)]"></span> 
+                            <span><b>0</b>: Ditolak (Constraint suhu/rute gagal)</span>
+                          </li>
+                        </ul>
+                      </div>
+                    </div>
+
+                    <div className="flex flex-col gap-4">
                       {matchCandidates.map((c, idx) => (
-                        <div key={idx} className={`p-4 rounded-lg border ${c.status === 'recommended' ? 'border-primary bg-primary/5' : c.status === 'rejected' ? 'border-error/50 bg-error/5 opacity-70' : 'border-outline-variant bg-surface'}`}>
-                          <div className="flex justify-between items-start mb-2">
+                        <div key={idx} className={`p-5 rounded-xl border transition-colors ${c.status === 'recommended' ? 'border-primary bg-primary/5 shadow-sm' : c.status === 'rejected' ? 'border-error/30 bg-error/5 opacity-75' : 'border-outline-variant bg-surface shadow-sm'}`}>
+                          <div className="flex flex-col md:flex-row justify-between md:items-center gap-3 mb-4">
                             <div>
-                              <div className="font-bold">{c.carrier.name}</div>
-                              <div className="text-xs text-on-surface-variant">
-                                {c.carrier.origin} → {c.carrier.destination} • {c.carrier.capacity_kg} kg • {c.carrier.temperature_min_c ?? 'N/A'} to {c.carrier.temperature_max_c ?? 'N/A'}°C
+                              <div className="font-bold text-lg text-primary">{c.carrier.name}</div>
+                              <div className="text-sm text-on-surface-variant font-mono mt-1 bg-white/50 inline-block px-2 py-1 rounded">
+                                {c.carrier.origin} → {c.carrier.destination} | Sisa: {c.carrier.capacity_kg} kg | Suhu: {c.carrier.temperature_min_c ?? 'N/A'}°C s/d {c.carrier.temperature_max_c ?? 'N/A'}°C
                               </div>
                             </div>
-                            <div className={`px-2 py-1 rounded text-xs font-bold ${c.status === 'recommended' ? 'bg-primary text-white' : c.status === 'rejected' ? 'bg-error text-white' : 'bg-secondary/20 text-secondary'}`}>
-                              Score: {c.score}
+                            <div className={`px-4 py-2 rounded-full text-sm font-bold w-fit flex items-center gap-1.5 shadow-sm ${c.status === 'recommended' ? 'bg-primary text-white' : c.status === 'rejected' ? 'bg-error text-white' : 'bg-yellow-500 text-white'}`}>
+                              <span className="material-symbols-outlined text-[18px]">
+                                {c.status === 'recommended' ? 'star' : c.status === 'rejected' ? 'block' : 'done'}
+                              </span>
+                              Skor AI: {c.score}
                             </div>
                           </div>
-                          <ul className="text-sm list-disc pl-4 text-on-surface-variant">
-                            {c.reasons.map((r: string, i: number) => (
-                              <li key={i}>{r}</li>
-                            ))}
-                          </ul>
+                          
+                          <div className="bg-surface-container-low p-3 rounded-lg border border-outline-variant/50">
+                            <div className="text-xs font-bold text-on-surface-variant mb-2 uppercase tracking-wide">Alasan AI (Matching Reasoning):</div>
+                            <ul className="text-sm list-none space-y-1.5">
+                              {c.reasons.map((r: string, i: number) => (
+                                <li key={i} className="flex items-start gap-2 text-on-surface">
+                                  <span className={`material-symbols-outlined text-[18px] mt-0.5 ${c.status === 'rejected' ? 'text-error' : 'text-primary'}`}>
+                                    {c.status === 'rejected' ? 'close' : 'check'}
+                                  </span>
+                                  {r}
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
                         </div>
                       ))}
                     </div>
                   </div>
                 )}
               </div>
+            </div>
+          )}
+          {result && result.error && (
+            <div className="w-full mt-8 animate-in fade-in bg-error/10 border border-error p-4 rounded-xl text-error text-center font-semibold">
+              <span className="material-symbols-outlined align-middle mr-2">error</span>
+              {result.error}
             </div>
           )}
         </div>
